@@ -1,5 +1,3 @@
-// socket.js - Socket.io client setup
-
 import { io } from 'socket.io-client';
 import { useEffect, useState } from 'react';
 
@@ -36,8 +34,8 @@ export const useSocket = () => {
   };
 
   // Send a message
-  const sendMessage = (message) => {
-    socket.emit('send_message', { message });
+  const sendMessage = (messageData) => {
+    socket.emit('send_message', messageData);
   };
 
   // Send a private message
@@ -50,35 +48,56 @@ export const useSocket = () => {
     socket.emit('typing', isTyping);
   };
 
+  // Mark a message as read
+  const markAsRead = (messageId) => {
+    socket.emit('message_read', messageId);
+  };
+
+  // Acknowledge delivery of a message
+  const markAsDelivered = (messageId) => {
+    socket.emit('message_delivered', messageId);
+  };
+
+  // React to a message
+  const reactToMessage = (messageId, emoji) => {
+    socket.emit('add_reaction', { messageId, emoji });
+  };
+
   // Socket event listeners
   useEffect(() => {
-    // Connection events
+    // Connection status
+   
     const onConnect = () => {
-      setIsConnected(true);
-    };
+    setIsConnected(true);
+    localStorage.setItem('socketId', socket.id); // ✅ Save your socket.id here
+  };
+    
+    const onDisconnect = () => setIsConnected(false);
 
-    const onDisconnect = () => {
-      setIsConnected(false);
-    };
-
-    // Message events
+    // Regular messages
     const onReceiveMessage = (message) => {
       setLastMessage(message);
       setMessages((prev) => [...prev, message]);
+      socket.emit('message_delivered', message.id); // Mark as delivered
     };
 
+    // Private messages
     const onPrivateMessage = (message) => {
       setLastMessage(message);
       setMessages((prev) => [...prev, message]);
+      socket.emit('message_delivered', message.id);
+    };
+
+    // Updated messages (reactions, read, delivery)
+    const onMessageUpdated = (updatedMessage) => {
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
+      );
     };
 
     // User events
-    const onUserList = (userList) => {
-      setUsers(userList);
-    };
-
+    const onUserList = (userList) => setUsers(userList);
     const onUserJoined = (user) => {
-      // You could add a system message here
       setMessages((prev) => [
         ...prev,
         {
@@ -89,9 +108,7 @@ export const useSocket = () => {
         },
       ]);
     };
-
     const onUserLeft = (user) => {
-      // You could add a system message here
       setMessages((prev) => [
         ...prev,
         {
@@ -103,27 +120,27 @@ export const useSocket = () => {
       ]);
     };
 
-    // Typing events
-    const onTypingUsers = (users) => {
-      setTypingUsers(users);
-    };
+    // Typing indicator
+    const onTypingUsers = (users) => setTypingUsers(users);
 
-    // Register event listeners
+    // Register listeners
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('receive_message', onReceiveMessage);
     socket.on('private_message', onPrivateMessage);
+    socket.on('message_updated', onMessageUpdated);
     socket.on('user_list', onUserList);
     socket.on('user_joined', onUserJoined);
     socket.on('user_left', onUserLeft);
     socket.on('typing_users', onTypingUsers);
 
-    // Clean up event listeners
+    // Cleanup
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('receive_message', onReceiveMessage);
       socket.off('private_message', onPrivateMessage);
+      socket.off('message_updated', onMessageUpdated);
       socket.off('user_list', onUserList);
       socket.off('user_joined', onUserJoined);
       socket.off('user_left', onUserLeft);
@@ -143,7 +160,10 @@ export const useSocket = () => {
     sendMessage,
     sendPrivateMessage,
     setTyping,
+    markAsRead,
+    markAsDelivered,
+    reactToMessage,
   };
 };
 
-export default socket; 
+export default socket;

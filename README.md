@@ -76,3 +76,40 @@ Your work will be automatically submitted when you push to your GitHub Classroom
 - [React Documentation](https://react.dev/)
 - [Express.js Documentation](https://expressjs.com/)
 - [Building a Chat Application with Socket.io](https://socket.io/get-started/chat) 
+////////////const express = require('express');
+const http = require('http');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const { Server } = require('socket.io');
+const path = require('path');
+
+const corsOptions = require('./config/corsOptions');
+const { getMessages } = require('./controllers/messageController');
+const socketHandler = require('./socket/socketHandler');
+
+dotenv.config();
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: corsOptions });
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// API Routes
+app.get('/api/messages', getMessages);
+app.get('/api/users', (req, res) => {
+  res.json([]); // optional: if you store users on backend
+});
+app.get('/', (req, res) => {
+  res.send('✅ Socket.io Chat Server is Running');
+});
+
+// Socket Events
+socketHandler(io);
+
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
