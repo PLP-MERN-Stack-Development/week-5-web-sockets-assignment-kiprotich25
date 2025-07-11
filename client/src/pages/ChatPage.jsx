@@ -1,48 +1,35 @@
-import React, { useState } from 'react';
-import { useSocket } from '../socket/socket'; // adjust path if different
-import Sidebar from '../components/Sidebar';
+import React from 'react';
 import ChatWindow from '../components/ChatWindow';
 import ChatInput from '../components/ChatInput';
+import Sidebar from '../components/Sidebar';
+import { useSocket } from '../socket/socket';
 
-const ChatPage = () => {
-  const [username, setUsername] = useState('');
-  const [inputUsername, setInputUsername] = useState('');
-  const { connect, messages, users, typingUsers, sendMessage, sendPrivateMessage } = useSocket();
+const ChatPage = ({ username }) => {
+  const {
+    messages,
+    users,
+    typingUsers,
+    currentUserId,
+    sendMessage,
+    sendPrivateMessage,
+    setTyping,
+    connect,
+  } = useSocket();
 
-  const handleUsernameSubmit = (e) => {
-    e.preventDefault();
-    if (inputUsername.trim()) {
-      setUsername(inputUsername.trim());         // Save username
-      connect(inputUsername.trim());             // Connect socket
-    }
-  };
-
-  if (!username) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gray-100">
-        <form onSubmit={handleUsernameSubmit} className="bg-white p-6 rounded shadow-md">
-          <h2 className="text-xl font-bold mb-4">Enter Your Username</h2>
-          <input
-            type="text"
-            value={inputUsername}
-            onChange={(e) => setInputUsername(e.target.value)}
-            className="border p-2 w-full mb-4"
-            placeholder="e.g., kiprotich25"
-          />
-          <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded w-full">
-            Join Chat
-          </button>
-        </form>
-      </div>
-    );
-  }
+  React.useEffect(() => {
+    connect(username);
+  }, []);
 
   return (
-    <div className="h-screen flex">
-      <Sidebar users={users} />
-      <div className="flex flex-col flex-1">
-        <ChatWindow messages={messages} currentUser={localStorage.getItem('socketId')} />
-        <ChatInput onSend={sendMessage} />
+    <div className="flex h-screen w-full">
+      <Sidebar users={users} sendPrivateMessage={sendPrivateMessage} />
+      <div className="flex flex-col flex-1 p-4">
+        <ChatWindow
+          messages={messages}
+          typingUsers={typingUsers}
+          currentUser={currentUserId}
+        />
+        <ChatInput sendMessage={sendMessage} setTyping={setTyping} />
       </div>
     </div>
   );

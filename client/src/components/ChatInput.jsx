@@ -1,65 +1,59 @@
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
 
-const ChatInput = ({ input, setInput, handleSend, setTyping }) => {
-  const fileInputRef = useRef(null);
+const ChatInput = ({ sendMessage, setTyping }) => {
+  const [input, setInput] = useState('');
+  const [file, setFile] = useState(null);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (input.trim() !== '') {
-      handleSend(input.trim());
+  const handleSend = () => {
+    if (input.trim() || file) {
+      const message = {
+        message: input,
+        type: file ? 'file' : 'text',
+      };
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          sendMessage({ ...message, fileData: reader.result });
+        };
+        reader.readAsDataURL(file);
+        setFile(null);
+      } else {
+        sendMessage(message);
+      }
+
+      setInput('');
     }
   };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      handleSend(file.name, 'file', reader.result);
-    };
-    reader.readAsDataURL(file);
-    fileInputRef.current.value = '';
-  };
-
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex items-center p-2 border-t border-gray-300 gap-2"
-    >
-      <button
-        type="button"
-        onClick={() => fileInputRef.current.click()}
-        className="bg-gray-200 rounded p-2 hover:bg-gray-300"
-        title="Attach File"
-      >
-        📎
-      </button>
-
+    <div className="mt-4 flex gap-2">
       <input
         type="file"
-        hidden
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="image/*"
+        onChange={(e) => setFile(e.target.files[0])}
+        className="border rounded px-2 py-1"
       />
-
       <input
+        type="text"
         value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onFocus={() => setTyping(true)}
+        onChange={(e) => {
+          setInput(e.target.value);
+          setTyping(true);
+        }}
         onBlur={() => setTyping(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleSend();
+        }}
+        className="flex-1 border rounded px-3 py-2"
         placeholder="Type a message..."
-        className="flex-1 p-2 border border-gray-300 rounded-lg"
       />
-
       <button
-        type="submit"
-        className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+        onClick={handleSend}
+        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
       >
         Send
       </button>
-    </form>
+    </div>
   );
 };
 
